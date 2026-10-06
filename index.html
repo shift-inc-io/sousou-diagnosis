@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SOUSOU移住診断</title>
+<meta name="description" content="5つの質問に答えて、福島県の相双12市町村からあなたに合うまちを見つける簡易診断。所要時間 約1分・会員登録なし。">
+<!-- 入口はLP。単体URLを広告やQRの着地にする場合は次の1行を削除する -->
+<meta name="robots" content="noindex">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SOUSOU移住診断｜あなたに合う相双12市町村のまち">
+<meta property="og:description" content="5つの質問に答えて、福島県の相双12市町村からあなたに合うまちを見つける簡易診断。所要時間 約1分・会員登録なし。">
+<meta property="og:site_name" content="SOUSOUから、はじめよう。">
+<meta name="twitter:card" content="summary">
+<!-- 本番URL（2026-10-06確定）＝ https://shindan.sousou-hajimeyo.jp/ （GitHub Pages で配信） -->
+<link rel="canonical" href="https://shindan.sousou-hajimeyo.jp/">
+<meta property="og:url" content="https://shindan.sousou-hajimeyo.jp/">
+<!-- OGP画像を用意したら有効化する（twitter:card も summary_large_image に戻す）
+<meta property="og:image" content="https://shindan.sousou-hajimeyo.jp/og.png">
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;700&display=swap">
+
+<!-- =====================================================================
+  設定（非エンジニアが触るのはここだけ）
+  ・設問・選択肢・市町村の文言は Google スプレッドシート
+    「SOUSOU移住診断｜設問・フロー設計（12市町村均等版）」が正。変えたらここへ転記する
+  ・URL は https:// で始めること。空文字にすると該当ボタンは表示されない
+  ・towns の並び順＝判定式の番号 0〜11（シート「市町村判定ルール」の並び）。入れ替えると結果が変わる
+  ・questions の選択肢の並び順＝回答番号 0〜（A/B/C/D）。入れ替えると結果が変わる
+===================================================================== -->
+<script id="sousou-config">
+const CONFIG = {
+  version: '20261006a',
+
+  app: {
+    name: 'SOUSOU移住診断',
+    region: '相双12市町村',
+    operator: '福島県相双地方振興局',
+    copyrightYear: '2026',
+  },
+
+  // LP（特設サイト）。url が空の間は「特設サイトへ戻る」「セミナー導線」を出さない
+  lp: {
+    url: 'https://sousou-hajimeyo.jp/',
+    diagnosisAnchor: '#diagnosis',
+    seminarAnchor: '#seminar',
+    label: '特設サイトへ戻る',
+  },
+
+  // 結果画面のセミナー導線。 'lp' = LPのセミナー節へ / 'line' = 公式LINEへ / 'off' = 出さない
+  cta: {
+    seminar: 'lp',
+    eyebrow: 'SEMINAR',
+    label: 'セミナーで直接聞いてみる',
+    note: '先輩移住者に、その場で質問できます。第1回 11/20（金）有楽町・第2回 2027/1/23（土）大手町',
+    buttonLp: 'セミナーの詳細を見る',
+    buttonLine: 'LINEで相談する',
+    lineUrl: '',
+  },
+
+  // 埋め込み（iframe）まわり
+  embed: {
+    param: 'embed',          // index.html?embed=1 で埋め込みモード
+    autoDetectIframe: false, // true にすると ?embed が無くても iframe 内なら埋め込みモード（確認用Artifact内でも発動するので既定は false）
+    parentOrigins: [],       // 例: ['https://sousou.example.jp']  空なら制限なし（個人情報は送らない）
+    fixedHeightFallback: 0,  // 0 = 高さ自動追従。STUDIO側でスクリプトが動かない場合は 720 などを入れる
+  },
+
+  // 計測。ID が無くても壊れない。GTM/GA4 は window.dataLayer、Clarity は window.clarity があれば使う
+  analytics: {
+    enabled: true,
+    pushToLocalDataLayer: true,
+    relayToParent: true,     // 埋め込み時に親ページ（LP）の dataLayer / clarity へ中継
+    clarityProjectId: '',    // 診断ページ自体にも Clarity を入れる場合のみ。二重計上を避けるなら relayToParent を false に
+  },
+
+  copy: {
+    heroEyebrow: '福島県 相双12市町村',
+    heroLead: 'あなたに合う「SOUSOUでのはじめかた」を見つけよう。',
+    heroText: '地域の雰囲気、周辺環境、いちばん大切にしたいこと、働き方と移動、地域との関わり方。5つの質問に直感で答えると、相双12市町村からおすすめのまちと、あわせてチェックしたい2つのまちをご提案します。',
+    chips: ['所要時間 約1分', '全5問・1問1選択', '会員登録なし'],
+    startTitle: 'SOUSOU移住診断をはじめる',
+    startIntro: '正解・不正解はありません。移住後の生活を思い浮かべて、直感でひとつずつ選びましょう。',
+    startNotes: [
+      { title: '暮らしを想像', text: '海・里山・市街地など、心地よい環境を選ぶ' },
+      { title: '相双12市町村から提案', text: '回答の組み合わせから、おすすめのまちと候補2つを表示' },
+      { title: '次の一歩へ', text: '移住関連ページと自治体公式サイトをご案内' },
+    ],
+    startButton: '診断を始める',
+    startFootnote: '所要時間 約1分・個人情報の入力はありません',
+    backButton: '前の質問へ',
+    nextButton: '次へ',
+    resultButton: '結果を見る',
+    tally: 'あなたに合うまちを探しています',
+    resultKicker: 'あなたにおすすめのまちは',
+    reasonsTitle: 'あなたが選んだ暮らしの希望',
+    consultButton: '移住関連ページを見る',
+    officialButton: '自治体公式サイトを見る',
+    runnersTitle: 'あわせてチェックしたいまち',
+    runnersNote: '5つの回答のうち4つが同じ組み合わせで、選ばれることが多い2つのまちです。',
+    runnerLink: '移住関連ページ',
+    restartButton: 'もう一度診断する',
+    newTab: '（別タブで開きます）',
+    disclaimer: 'この診断は、回答の組み合わせからおすすめの市町村を提案する簡易診断です。移住を決定するものではありません。支援制度・窓口情報は変更される場合があるため、各自治体の最新情報をご確認ください。',
+  },
+
+  // 判定式（シート「全体設計」）。回答番号（0始まり）× weights の合計を市町村数（12）で割った余り＝towns の番号。
+  // 「あわせてチェックしたいまち」＝5問中4問が同じ隣接パターン（14通り）の主結果を数え、多い順・同数なら主結果から前方向（番号順）に近い順に runners 件。
+  rule: { weights: [1, 1, 1, 3, 4], runners: 2 },
+
+  questions: [
+    {
+      id: 'Q1', axis: '地域の規模・雰囲気',
+      title: '移住先の地域に、どんな雰囲気を求めますか？',
+      options: [
+        { code: 'urban',    label: '生活機能がまとまった、便利な市街地', note: '買い物や医療へのアクセスを重視したい' },
+        { code: 'balanced', label: '便利さと落ち着きを両立した、コンパクトなまち', note: '日常の便利さを保ちながら、ゆとりある暮らしをしたい' },
+        { code: 'local',    label: '顔の見える関係が育つ、小さな地域', note: '人との距離が近い環境で、地域になじみたい' },
+        { code: 'renewal',  label: '新しい施設や活動が生まれている地域', note: '変化の途中にあるまちで、新しい挑戦に関わりたい' },
+      ],
+    },
+    {
+      id: 'Q2', axis: '希望する周辺環境',
+      title: '毎日の景色や住まいの周辺として、最も近いイメージは？',
+      options: [
+        { code: 'city',     label: '駅や生活機能が身近なまちなか', note: '買い物、医療、公共交通までの距離を短くしたい' },
+        { code: 'coast',    label: '空が広く、潮風を感じる海辺', note: '海や朝日を身近に感じる、開放的な暮らしをしたい' },
+        { code: 'mountain', label: '田畑や森に囲まれた里山', note: '自然の近くで、静けさや住まいの余白を大切にしたい' },
+        { code: 'suburban', label: '庭や作業スペースを持ちやすい、ゆとりある住環境', note: '住宅がゆったりと並ぶ、静かな環境で暮らしたい' },
+      ],
+    },
+    {
+      id: 'Q3', axis: '最優先テーマ',
+      title: '移住先で、最優先したいことは？',
+      options: [
+        { code: 'family',    label: '家族の安心と暮らしやすさ', note: '子育て、医療、日々の生活の整えやすさを重視したい' },
+        { code: 'work',      label: '仕事・起業・新しい挑戦', note: '地域の産業、復興、プロジェクトに関わりたい' },
+        { code: 'community', label: '自然や地域とのつながり', note: '地域の人や文化と、顔の見える関係を育てたい' },
+        { code: 'calm',      label: '自分の時間と穏やかなペース', note: '自然を楽しみながら、無理なく地域になじみたい' },
+      ],
+    },
+    {
+      id: 'Q4', axis: '働き方・移動スタイル',
+      title: '仕事や日常の移動に、最も近いスタイルは？',
+      options: [
+        { code: 'local_work',   label: '地域内で働き、生活圏をコンパクトにしたい', note: '通勤時間を抑え、日々の移動を短くしたい' },
+        { code: 'commute',      label: '鉄道や車で、周辺地域へ通勤・移動したい', note: '広域の仕事や用事にも動きやすい暮らしをしたい' },
+        { code: 'remote',       label: 'リモートワークを中心に、住む場所を選びたい', note: '自宅の仕事環境と通信の安定を重視したい' },
+        { code: 'entrepreneur', label: '起業・複業・地域プロジェクトに挑戦したい', note: '地域資源や人との出会いを仕事につなげたい' },
+      ],
+    },
+    {
+      id: 'Q5', axis: '地域との関わり方',
+      title: '地域の人や活動と、どのくらい関わりたいですか？',
+      options: [
+        { code: 'private',  label: '自分や家族の時間を中心に、無理なく暮らしたい', note: '地域との距離感を自分のペースで整えたい' },
+        { code: 'moderate', label: '行事や活動に、ときどき参加したい', note: '必要なときに助け合える関係を少しずつ育てたい' },
+        { code: 'active',   label: '地域活動やまちづくりに、積極的に関わりたい', note: '地域の人と一緒に、活動や新しい取り組みをつくりたい' },
+      ],
+    },
+  ],
+
+  // 並び順＝判定式の番号 0〜11（シート「市町村判定ルール」の市町村の結果表示データの順）。lead＝結果見出し／summary＝紹介文
+  towns: [
+    {
+      key: 'shinchi', name: '新地町', // 0
+      lead: '仙台方面とのつながりと、海辺の地域らしさを大切にしたいあなたへ。',
+      summary: '相双地域の最北端。JR常磐線で仙台方面へつながり、海・里山の自然と子育てを身近に感じられるコンパクトな町です。',
+      consultUrl: 'https://www.shinchi-town.jp/site/shinchiiju/sinnchimatiniijuuteijuu1.html',
+      officialUrl: 'https://www.shinchi-town.jp/',
+    },
+    {
+      key: 'soma', name: '相馬市', // 1
+      lead: '生活の安心と歴史あるまちの温かさを大切にしたいあなたへ。',
+      summary: '買い物・医療などの日常機能がまとまり、海や松川浦も身近。仙台方面とのアクセスや家族での暮らしやすさを重視する人に合うまちです。',
+      consultUrl: 'https://www.fukushima-iju.jp/city/SOMA',
+      officialUrl: 'https://www.city.soma.fukushima.jp/',
+    },
+    {
+      key: 'iitate', name: '飯舘村', // 2
+      lead: '車のある里山暮らしで、家族の安心を育てたいあなたへ。',
+      summary: '阿武隈高地の豊かな自然に包まれた村。「までい」な心を大切に、農ある暮らしや地域との深いつながりを求める人に向いています。',
+      consultUrl: 'https://www.vill.iitate.fukushima.jp/site/iju/',
+      officialUrl: 'https://www.vill.iitate.fukushima.jp/',
+    },
+    {
+      key: 'minamisoma', name: '南相馬市', // 3
+      lead: '便利な日常を保ちながら、仕事や挑戦の幅も広げたいあなたへ。',
+      summary: '相双地域の中心的な市。市街地の生活利便性に加え、ロボット産業、起業、地域活動など多様な仕事と挑戦の入口があります。',
+      consultUrl: 'https://www.city.minamisoma.lg.jp/attraction/index.html',
+      officialUrl: 'https://www.city.minamisoma.lg.jp/',
+    },
+    {
+      key: 'namie', name: '浪江町', // 4
+      lead: '車を活用しながら、新しい仕事や関係をつくりたいあなたへ。',
+      summary: 'JR常磐線の駅を中心に新しい暮らしの風景が広がる町。仕事、ものづくり、食、地域活動に関心のある移住者が出会いやすい環境です。',
+      consultUrl: 'https://namie-iju.jp/',
+      officialUrl: 'https://www.town.namie.fukushima.jp/',
+    },
+    {
+      key: 'katsurao', name: '葛尾村', // 5
+      lead: '小さな村で、人と関わりながら自分らしい役割を見つけたいあなたへ。',
+      summary: '自然豊かな阿武隈高地の村。顔の見える関係の中で、地域活動や新しい試みにじっくり取り組みたい人に合う環境です。',
+      consultUrl: 'https://konnichiwa-katsurao.jp/',
+      officialUrl: 'https://www.katsurao.org/',
+    },
+    {
+      key: 'futaba', name: '双葉町', // 6
+      lead: 'いわき方面とのつながりを持ちながら、まちの未来に関わりたいあなたへ。',
+      summary: 'JR双葉駅周辺を中心に復興と新しいまちづくりが進行中。地域の変化に関わり、自分の経験やアイデアを生かしたい人に向いています。',
+      consultUrl: 'https://futaba-iju.com/',
+      officialUrl: 'https://www.town.fukushima-futaba.lg.jp/',
+    },
+    {
+      key: 'okuma', name: '大熊町', // 7
+      lead: '車を活用し、新しい産業のある環境で暮らしを開拓したいあなたへ。',
+      summary: '新しい拠点、学び、産業が形になりつつある町。移住者同士の出会いを持ちながら、自分のペースで新しい日常を築けます。',
+      consultUrl: 'https://www.town.okuma.fukushima.jp/site/iju/',
+      officialUrl: 'https://www.town.okuma.fukushima.jp/',
+    },
+    {
+      key: 'tomioka', name: '富岡町', // 8
+      lead: '駅のあるコンパクトなまちで、家族の日常を整えたいあなたへ。',
+      summary: 'JR常磐線と常磐道を使いやすく、生活機能と新しいコミュニティが育つ町。いわき方面との行き来や家族の暮らしやすさを重視する人に合います。',
+      consultUrl: 'https://www.tomioka-iju.jp/',
+      officialUrl: 'https://www.tomioka-town.jp/',
+    },
+    {
+      key: 'kawauchi', name: '川内村', // 9
+      lead: '森の近くで、静けさと人の温かさを日常にしたいあなたへ。',
+      summary: '阿武隈高地の森と清流に囲まれた村。自然のそばで暮らし、地域の人とゆっくり関係を育てたい人におすすめです。',
+      consultUrl: 'https://www.kawauchi-ijyu.com/',
+      officialUrl: 'https://www.kawauchimura.jp/',
+    },
+    {
+      key: 'naraha', name: '楢葉町', // 10
+      lead: '生活機能を活かしながら、地域とほどよくつながりたいあなたへ。',
+      summary: '海、スポーツ、暮らしの施設がほどよい距離にある町。いわき方面にも出やすく、家族での新生活や穏やかなペースを望む人に向いています。',
+      consultUrl: 'https://kurasu-naraha.jp/',
+      officialUrl: 'https://www.town.naraha.lg.jp/',
+    },
+    {
+      key: 'hirono', name: '広野町', // 11
+      lead: 'いわき方面を生活圏に、家族で穏やかに暮らしたいあなたへ。',
+      summary: '「東北に春を告げる町」と呼ばれる温暖な気候と、美しい日の出が魅力。海の近さ、いわき方面へのアクセス、穏やかな関係性を求める人に合います。',
+      consultUrl: 'https://www.town.hirono.fukushima.jp/ijyu/',
+      officialUrl: 'https://www.town.hirono.fukushima.jp/',
+    },
+  ],
+};
+</script>
+
+<!-- 埋め込みモードの判定は描画前に同期で行う（ちらつき防止） -->
+<script>
+(function () {
+  try {
+    var cfg = (typeof CONFIG !== 'undefined' && CONFIG.embed) || {};
+    var key = cfg.param || 'embed';
+    var v = new URLSearchParams(window.location.search).get(key);
+    var on = !!v && /^(1|true|yes|on)$/i.test(v);
+    if (!on && cfg.autoDetectIframe && window.self !== window.top) on = true;
+    if (on) document.documentElement.classList.add('is-embed');
+  } catch (e) { /* 判定できなければ通常表示 */ }
+})();
+</script>
+
+<style>
+  /* ---- デザイントークン（LPデザイン 260918 から採取。LP確定後はここだけ差し替える） ---- */
+  :root {
+    color-scheme: light;
+    --c-primary: #00a8d8;        /* LPのスカイブルー。線・進捗・バッジ・面 */
+    --c-primary-deep: #0077b6;   /* ボタン塗り・小さな水色文字（白文字とのコントラスト確保） */
+    --c-primary-soft: #bfe9f7;   /* 選択中の縁など */
+    --c-tint: #e4f6fc;           /* LPの淡水色の帯 */
+    --c-tint-deep: #cbeaf6;
+    --c-paper: #ffffff;
+    --c-ink: #3c3838;
+    --c-muted: #6e7a82;
+    --c-line: #cfe3ec;
+    --c-line-green: #06c755;
+    --c-accent: #f8f060;         /* LPのENTRY帯の黄。強調1箇所のみ */
+    --c-focus: #0077b6;
+    --font-sans: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    --font-serif: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    --radius-card: 20px;
+    --radius-box: 14px;
+    --radius-pill: 999px;
+    --tap-min: 48px;
+    --max-w: 760px;
+    --gutter: 16px;
+    --shadow: 0 12px 36px rgba(0, 120, 180, .10);
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--c-paper);
+    color: var(--c-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+  }
+  button, input { font: inherit; }
+  a { color: var(--c-primary-deep); }
+  h1, h2, h3, p { margin: 0; }
+  h1, h2, h3 { text-wrap: balance; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  :focus-visible { outline: 3px solid var(--c-focus); outline-offset: 3px; }
+  .wrap { width: min(var(--max-w), 100% - var(--gutter) * 2); margin-inline: auto; }
+  .skip-link { position: absolute; left: var(--gutter); top: -100px; padding: 8px 14px; border-radius: var(--radius-pill); background: var(--c-primary-deep); color: #fff; font-weight: 700; text-decoration: none; z-index: 20; }
+  .skip-link:focus { top: 12px; }
+
+  /* ---- ヘッダー ---- */
+  .site-header { border-bottom: 2px solid var(--c-primary); background: var(--c-paper); }
+  .site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding-block: 10px; }
+  .wordmark { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: inherit; }
+  .wordmark-main { font-size: 18px; font-weight: 700; line-height: 1.2; letter-spacing: .01em; }
+  .wordmark-main .en { font-family: var(--font-serif); font-size: 24px; color: var(--c-primary); font-weight: 700; letter-spacing: .02em; margin-right: 2px; }
+  .wordmark-sub { font-size: 11px; color: var(--c-muted); letter-spacing: .04em; }
+  .header-link { flex: none; font-size: 13px; font-weight: 700; text-decoration: none; color: var(--c-primary-deep); padding: 8px 14px; border: 2px solid var(--c-primary); border-radius: var(--radius-pill); }
+  .header-link[hidden] { display: none; }
+
+  /* ---- ヒーロー ---- */
+  .hero { padding-block: 44px 36px; background: var(--c-paper); }
+  .hero .wrap { display: grid; gap: 14px; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-serif); font-size: 14px; letter-spacing: .12em; color: var(--c-ink); }
+  .eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--c-primary); }
+  .hero-title { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; line-height: 1.1; }
+  .hero-title .en { font-family: var(--font-serif); font-weight: 700; font-size: clamp(44px, 9vw, 72px); color: var(--c-primary); letter-spacing: .02em; }
+  .hero-title .ja { display: inline-block; padding: 6px 14px; border-radius: 8px; background: var(--c-primary); color: #fff; font-size: clamp(22px, 5vw, 34px); font-weight: 700; letter-spacing: .06em; line-height: 1.3; }
+  .hero-lead { font-size: clamp(18px, 3.4vw, 22px); font-weight: 700; line-height: 1.6; }
+  .hero-text { max-width: 40em; color: var(--c-muted); font-size: 15px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; padding: 0; list-style: none; }
+  .chips li { padding: 6px 12px; border: 1.5px solid var(--c-primary); border-radius: var(--radius-pill); color: var(--c-primary-deep); font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+
+  /* ---- メイン（帯＋カード） ---- */
+  .main { background: var(--c-tint); padding-block: 36px 56px; }
+  .card { position: relative; overflow: hidden; background: var(--c-paper); border: 1px solid var(--c-line); border-radius: var(--radius-card); box-shadow: var(--shadow); }
+  .progress { padding: 18px 22px 14px; border-bottom: 1px solid var(--c-line); }
+  .progress-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+  .progress-row .axis { color: var(--c-muted); font-weight: 500; letter-spacing: 0; }
+  .progress-row .count { color: var(--c-primary-deep); font-variant-numeric: tabular-nums; }
+  .progress-track { height: 6px; border-radius: var(--radius-pill); background: var(--c-tint-deep); overflow: hidden; }
+  .progress-bar { width: 0; height: 100%; background: var(--c-primary); border-radius: inherit; transition: width .35s var(--ease); }
+  .screen { padding: clamp(24px, 5vw, 44px); }
+  .screen.is-entering { animation: screen-in .32s var(--ease); }
+  @keyframes screen-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* スタート */
+  .screen-start { text-align: center; display: grid; gap: 18px; justify-items: center; }
+  .start-mark { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--c-tint); color: var(--c-primary-deep); }
+  .start-mark svg { width: 34px; height: 34px; }
+  .screen-start h2 { font-size: clamp(22px, 4.4vw, 30px); line-height: 1.4; }
+  .screen-start .intro { max-width: 30em; color: var(--c-ink); font-size: clamp(17px, 3.6vw, 20px); font-weight: 500; line-height: 1.75; }
+  .start-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin: 6px 0 4px; padding: 0; list-style: none; text-align: left; }
+  .start-notes li { display: grid; gap: 2px; padding: 14px 14px 12px; border-radius: var(--radius-box); background: var(--c-tint); }
+  .start-notes strong { font-size: 13px; color: var(--c-primary-deep); }
+  .start-notes span { font-size: 12px; color: var(--c-muted); line-height: 1.6; }
+  .footnote { font-size: 12px; color: var(--c-muted); }
+
+  /* ボタン */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 28px; border-radius: var(--radius-pill); border: 2px solid var(--c-primary-deep); background: var(--c-primary-deep); color: #fff; font-weight: 700; font-size: 16px; text-decoration: none; cursor: pointer; touch-action: manipulation; transition: transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease); }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0, 119, 182, .22); }
+  .btn:active { transform: none; }
+  .btn.outline { background: var(--c-paper); color: var(--c-primary-deep); }
+  .btn.ghost { background: transparent; border-color: var(--c-line); color: var(--c-muted); }
+  .btn.line { background: var(--c-line-green); border-color: var(--c-line-green); }
+  .btn.wide { width: 100%; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn .arrow { font-size: 14px; }
+  .sr-note { font-size: 0; }
+
+  /* 設問 */
+  .screen-question fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+  .q-title { display: block; padding: 0; margin: 0 0 20px; }
+  .q-title:focus { outline: none; }
+  .q-label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--c-primary-deep); }
+  .q-title-text { display: block; font-size: clamp(20px, 4vw, 26px); font-weight: 700; line-height: 1.5; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .option { position: relative; display: flex; align-items: flex-start; gap: 12px; min-height: 84px; padding: 14px 16px; border: 2px solid var(--c-line); border-radius: var(--radius-box); background: var(--c-paper); cursor: pointer; transition: border-color .18s var(--ease), background .18s var(--ease), transform .18s var(--ease); }
+  .option:hover { border-color: var(--c-primary); transform: translateY(-1px); }
+  .option.is-selected { border-color: var(--c-primary); background: var(--c-tint); }
+  .option:has(input:focus-visible) { outline: 3px solid var(--c-focus); outline-offset: 3px; }
+  .option-letter { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; margin-top: 2px; border-radius: 50%; background: var(--c-tint); color: var(--c-primary-deep); font-size: 13px; font-weight: 700; }
+  .option.is-selected .option-letter { background: var(--c-primary-deep); color: #fff; }
+  .option-text { display: grid; gap: 2px; }
+  .option-text strong { font-size: 15.5px; line-height: 1.5; }
+  .option-text small { font-size: 12.5px; line-height: 1.55; color: var(--c-muted); }
+  .q-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+  .q-nav .btn { min-width: 44%; }
+
+  /* 集計 */
+  .screen-tally { display: grid; gap: 14px; justify-items: center; text-align: center; min-height: 260px; align-content: center; color: var(--c-primary-deep); font-weight: 700; }
+  .dots { display: inline-flex; gap: 8px; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--c-primary); animation: dot 1s infinite var(--ease); }
+  .dots i:nth-child(2) { animation-delay: .15s; }
+  .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes dot { 0%, 100% { transform: translateY(0); opacity: .5; } 50% { transform: translateY(-6px); opacity: 1; } }
+
+  /* 結果 */
+  .screen-result { padding: 0; }
+  .result-top { display: grid; gap: 10px; justify-items: center; text-align: center; padding: clamp(28px, 6vw, 44px) clamp(20px, 5vw, 44px) 26px; background: var(--c-tint); border-bottom: 1px solid var(--c-line); }
+  .result-kicker { font-size: 13px; font-weight: 700; letter-spacing: .14em; color: var(--c-primary-deep); }
+  .result-name { font-family: var(--font-serif); font-weight: 700; font-size: clamp(40px, 10vw, 64px); line-height: 1.15; letter-spacing: .04em; color: var(--c-ink); }
+  .result-name:focus { outline: none; }
+  .result-body { display: grid; gap: 22px; padding: clamp(24px, 5vw, 40px); }
+  .result-lead { font-family: var(--font-serif); font-size: clamp(19px, 3.8vw, 24px); font-weight: 700; line-height: 1.6; color: var(--c-primary-deep); }
+  .result-summary { color: var(--c-ink); }
+  .reasons { padding: 18px 20px; border-radius: var(--radius-box); background: var(--c-tint); }
+  .reasons h3 { margin-bottom: 10px; font-size: 15px; color: var(--c-primary-deep); }
+  .reason-list { display: grid; gap: 10px; margin: 0; }
+  .reason-item { position: relative; display: grid; gap: 1px; padding-left: 40px; min-height: 30px; }
+  .reason-item dt { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--c-muted); }
+  .reason-item dt::before { content: attr(data-q); position: absolute; left: 0; top: 2px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--c-paper); color: var(--c-primary-deep); font-size: 11px; font-weight: 700; letter-spacing: 0; }
+  .reason-item dd { margin: 0; font-size: 15px; font-weight: 500; line-height: 1.55; }
+  .result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .result-actions .btn { padding-inline: 16px; text-align: center; font-size: 15px; }
+  .runners h3 { margin-bottom: 4px; font-size: 15px; }
+  .runners-note { margin-bottom: 10px; font-size: 12.5px; color: var(--c-muted); line-height: 1.6; }
+  .runner-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .runner { display: grid; gap: 6px; padding: 14px 16px; border-radius: var(--radius-box); border: 1px solid var(--c-line); background: var(--c-paper); }
+  .runner-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .runner-name { font-family: var(--font-serif); font-size: 20px; font-weight: 700; }
+  .runner-link { font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .runner-lead { font-size: 13px; color: var(--c-muted); line-height: 1.6; }
+  .seminar { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding: 18px 20px; border-radius: var(--radius-box); border: 2px solid var(--c-primary); background: var(--c-paper); }
+  .seminar[hidden] { display: none; }
+  .seminar-badge { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--c-primary); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-align: center; line-height: 1.2; }
+  .seminar-body { display: grid; gap: 4px; }
+  .seminar-label { font-size: 17px; font-weight: 700; }
+  .seminar-note { font-size: 13px; color: var(--c-muted); }
+  .seminar .btn { grid-column: 1 / -1; }
+  .restart-row { display: grid; justify-items: center; }
+  .disclaimer { font-size: 12px; color: var(--c-muted); line-height: 1.7; padding-top: 4px; border-top: 1px solid var(--c-line); padding-top: 16px; }
+
+  /* ---- フッター ---- */
+  .site-footer { padding-block: 26px; background: var(--c-paper); color: var(--c-muted); font-size: 12px; text-align: center; }
+
+  /* ---- セルフテスト表示 ---- */
+  .selftest { position: fixed; left: 12px; bottom: 12px; z-index: 30; max-width: min(420px, calc(100vw - 24px)); max-height: 50vh; overflow: auto; padding: 12px 14px; border-radius: 12px; background: #1d2a33; color: #e8f4fa; font-size: 12px; line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+  .selftest h2 { font-size: 13px; margin-bottom: 6px; }
+  .selftest ul { margin: 0; padding: 0; list-style: none; }
+  .selftest .ok::before { content: "PASS "; color: #6ee7a8; font-weight: 700; }
+  .selftest .ng::before { content: "FAIL "; color: #ff8a80; font-weight: 700; }
+
+  /* ---- レスポンシブ ---- */
+  @media (max-width: 640px) {
+    .site-header .wrap { min-height: 58px; }
+    .header-link { padding: 6px 10px; font-size: 12px; }
+    .hero { padding-block: 32px 26px; }
+    .start-notes, .options, .result-actions, .runner-list { grid-template-columns: 1fr; }
+    .option { min-height: 64px; padding: 12px 14px; }
+    .q-nav { display: grid; grid-template-columns: 1fr 1fr; }
+    .q-nav .btn { min-width: 0; width: 100%; padding-inline: 10px; }
+    .seminar { grid-template-columns: 1fr; }
+    .seminar-badge { width: 48px; height: 48px; }
+  }
+
+  /* ---- 埋め込みモード ---- */
+  html.is-embed, html.is-embed body { background: transparent; }
+  html.is-embed [data-embed-hide] { display: none !important; }
+  html.is-embed .main { background: transparent; padding-block: 0 4px; }
+  html.is-embed .wrap { width: 100%; }
+  html.is-embed .card { box-shadow: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="page" class="page">
+  <a class="skip-link" href="#app" data-embed-hide>診断へ移動</a>
+
+  <header class="site-header" data-embed-hide>
+    <div class="wrap">
+      <a class="wordmark" id="wordmark" href="#app">
+        <span class="wordmark-main"><span class="en">SOUSOU</span>から、はじめよう。</span>
+        <span class="wordmark-sub">福島県相双地域移住・定住促進事業</span>
+      </a>
+      <a class="header-link" id="lp-link" href="#" hidden></a>
+    </div>
+  </header>
+
+  <section class="hero" data-embed-hide aria-labelledby="hero-title">
+    <div class="wrap">
+      <p class="eyebrow" id="hero-eyebrow"></p>
+      <h1 class="hero-title" id="hero-title"><span class="en">SOUSOU</span><span class="ja">移住診断</span></h1>
+      <p class="hero-lead" id="hero-lead"></p>
+      <p class="hero-text" id="hero-text"></p>
+      <ul class="chips" id="hero-chips"></ul>
+    </div>
+  </section>
+
+  <main id="app" class="main">
+    <div class="wrap">
+      <div class="card" id="card">
+        <div class="progress" id="progress" hidden>
+          <div class="progress-row">
+            <span><span id="progress-label"></span> <span class="axis" id="progress-axis"></span></span>
+            <span class="count" id="progress-count"></span>
+          </div>
+          <div class="progress-track" id="progress-track" role="progressbar" aria-label="診断の進み具合" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
+            <div class="progress-bar" id="progress-bar"></div>
+          </div>
+        </div>
+
+        <section class="screen screen-start" id="screen-start" aria-labelledby="start-title">
+          <div class="start-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M10 20v-5h4v5"/></svg>
+          </div>
+          <h2 id="start-title"></h2>
+          <p class="intro" id="start-intro"></p>
+          <ul class="start-notes" id="start-notes"></ul>
+          <button class="btn" id="start-button" type="button"></button>
+          <p class="footnote" id="start-footnote"></p>
+        </section>
+
+        <form class="screen screen-question" id="screen-question" hidden novalidate>
+          <fieldset>
+            <legend class="q-title" id="q-title" tabindex="-1">
+              <span class="q-label" id="q-label"></span>
+              <span class="q-title-text" id="q-title-text"></span>
+            </legend>
+            <div class="options" id="options"></div>
+          </fieldset>
+          <div class="q-nav">
+            <button class="btn ghost" id="back-button" type="button"></button>
+            <button class="btn" id="next-button" type="submit" disabled></button>
+          </div>
+        </form>
+
+        <div class="screen screen-tally" id="screen-tally" hidden aria-busy="true">
+          <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <p id="tally-text"></p>
+        </div>
+
+        <section class="screen screen-result" id="screen-result" hidden aria-labelledby="result-name">
+          <div class="result-top">
+            <p class="result-kicker" id="result-kicker"></p>
+            <h2 class="result-name" id="result-name" tabindex="-1"></h2>
+          </div>
+          <div class="result-body">
+            <p class="result-lead" id="result-lead"></p>
+            <p class="result-summary" id="result-summary"></p>
+            <div class="reasons" id="reasons">
+              <h3 id="reasons-title"></h3>
+              <dl class="reason-list" id="reason-list"></dl>
+            </div>
+            <div class="result-actions">
+              <a class="btn" id="consult-link" href="#" target="_blank" rel="noopener noreferrer" data-kind="consult"></a>
+              <a class="btn outline" id="official-link" href="#" target="_blank" rel="noopener noreferrer" data-kind="official"></a>
+            </div>
+            <div class="runners">
+              <h3 id="runners-title"></h3>
+              <p class="runners-note" id="runners-note"></p>
+              <ul class="runner-list" id="runner-list"></ul>
+            </div>
+            <div class="seminar" id="seminar" hidden>
+              <div class="seminar-badge" id="seminar-badge" aria-hidden="true"></div>
+              <div class="seminar-body">
+                <p class="seminar-label" id="seminar-label"></p>
+                <p class="seminar-note" id="seminar-note"></p>
+              </div>
+              <a class="btn" id="seminar-link" href="#" data-kind="seminar"></a>
+            </div>
+            <div class="restart-row"><button class="btn ghost" id="restart-button" type="button"></button></div>
+            <p class="disclaimer" id="disclaimer"></p>
+          </div>
+        </section>
+      </div>
+      <p class="sr-only" id="live" aria-live="polite"></p>
+    </div>
+  </main>
+
+  <footer class="site-footer" data-embed-hide><div class="wrap" id="footer-text"></div></footer>
+</div>
+<noscript><p style="padding:16px;text-align:center">この診断の表示にはJavaScriptが必要です。ブラウザの設定をご確認ください。</p></noscript>
+
+<!-- =====================================================================
+  判定ロジック（純関数のみ・DOMを触らない。Nodeのテストからも読み込む）
+===================================================================== -->
+<script id="sousou-core">
+globalThis.SousouCore = (function () {
+  'use strict';
+
+  function optionCodes(question) { return question.options.map(function (o) { return o.code; }); }
+
+  // 回答コード配列 → 回答番号配列（0始まり）。不正な回答があれば null
+  function toIndexes(answers, cfg) {
+    var out = [];
+    for (var q = 0; q < cfg.questions.length; q++) {
+      var i = optionCodes(cfg.questions[q]).indexOf(answers ? answers[q] : undefined);
+      if (i < 0) return null;
+      out.push(i);
+    }
+    return out;
+  }
+
+  // 回答番号配列 → towns の番号（重み付き和を市町村数で割った余り）
+  function slotOf(indexes, cfg) {
+    var w = (cfg.rule && cfg.rule.weights) || [], n = cfg.towns.length, sum = 0;
+    for (var i = 0; i < indexes.length; i++) sum += (w[i] || 0) * indexes[i];
+    return ((sum % n) + n) % n;
+  }
+
+  // シート「市町村判定ルール」の組合せID（1〜768。Q5 がいちばん速く回る）
+  function patternId(indexes, cfg) {
+    var id = 0;
+    for (var q = 0; q < indexes.length; q++) id = id * cfg.questions[q].options.length + indexes[q];
+    return id + 1;
+  }
+
+  // 5問中4問が同じ隣接パターン（1問だけ別の選択肢に替えたもの）の主結果を数える。主結果と同じ市町村は数えない
+  function neighborCounts(indexes, cfg) {
+    var best = slotOf(indexes, cfg), counts = {};
+    for (var q = 0; q < indexes.length; q++) {
+      var n = cfg.questions[q].options.length;
+      for (var alt = 0; alt < n; alt++) {
+        if (alt === indexes[q]) continue;
+        var copy = indexes.slice(); copy[q] = alt;
+        var slot = slotOf(copy, cfg);
+        if (slot !== best) counts[slot] = (counts[slot] || 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  function townAt(cfg, slot, count) {
+    var t = cfg.towns[slot];
+    return { key: t.key, name: t.name, index: slot, town: t, count: count || 0 };
+  }
+
+  // 回答配列（回答コード×設問数）→ 主結果・あわせてチェックしたいまち2件・選んだ希望
+  function calculate(answers, cfg) {
+    var indexes = toIndexes(answers, cfg);
+    if (!indexes) throw new Error('回答が揃っていません: ' + String(answers));
+    var n = cfg.towns.length;
+    var slot = slotOf(indexes, cfg);
+    var counts = neighborCounts(indexes, cfg);
+    var order = Object.keys(counts).map(Number).sort(function (a, b) {
+      return counts[b] - counts[a] || ((a - slot + n) % n) - ((b - slot + n) % n);
+    });
+    var take = (cfg.rule && cfg.rule.runners) || 2;
+    var runners = order.slice(0, take).map(function (x) { return townAt(cfg, x, counts[x]); });
+    var reasons = cfg.questions.map(function (q, i) {
+      var opt = q.options[indexes[i]];
+      return { id: q.id, axis: q.axis, code: opt.code, label: opt.label };
+    });
+    return { best: townAt(cfg, slot, 0), runners: runners, reasons: reasons, slot: slot, indexes: indexes, key: answers.join('|'), patternId: patternId(indexes, cfg) };
+  }
+
+  // 全通りを列挙（回答番号配列の配列）
+  function allIndexes(cfg) {
+    var out = [];
+    (function walk(prefix) {
+      if (prefix.length === cfg.questions.length) { out.push(prefix); return; }
+      var n = cfg.questions[prefix.length].options.length;
+      for (var i = 0; i < n; i++) walk(prefix.concat(i));
+    })([]);
+    return out;
+  }
+
+  // 公平性の確認（シート「配点ルール」）＝主結果が各市町村に同数、候補の表示回数も同数、候補は主結果と重複しない
+  function distribution(cfg) {
+    var n = cfg.towns.length, primary = [], runner = [], problems = [];
+    for (var i = 0; i < n; i++) { primary.push(0); runner.push(0); }
+    var all = allIndexes(cfg);
+    var take = (cfg.rule && cfg.rule.runners) || 2;
+    all.forEach(function (indexes) {
+      var answers = indexes.map(function (x, q) { return cfg.questions[q].options[x].code; });
+      var r = calculate(answers, cfg);
+      primary[r.slot]++;
+      var seen = { }; seen[r.slot] = true;
+      if (r.runners.length !== take) problems.push(r.key + ': 候補が' + r.runners.length + '件');
+      r.runners.forEach(function (x) {
+        if (seen[x.index]) problems.push(r.key + ': 候補が主結果または他の候補と重複');
+        seen[x.index] = true; runner[x.index]++;
+      });
+    });
+    var expectedPrimary = all.length / n, expectedRunner = all.length * take / n;
+    cfg.towns.forEach(function (t, i) {
+      if (primary[i] !== expectedPrimary) problems.push(t.name + ': 主結果 ' + primary[i] + '回（期待 ' + expectedPrimary + '）');
+      if (runner[i] !== expectedRunner) problems.push(t.name + ': 候補表示 ' + runner[i] + '回（期待 ' + expectedRunner + '）');
+    });
+    return { total: all.length, primary: primary, runner: runner, expectedPrimary: expectedPrimary, expectedRunner: expectedRunner, problems: problems };
+  }
+
+  // CONFIG の整合性チェック。戻り値＝エラー文の配列（空なら正常）
+  function validateConfig(cfg) {
+    var errors = [];
+    var qs = cfg.questions || [];
+    var towns = cfg.towns || [];
+    var rule = cfg.rule || {};
+    if (qs.length !== 5) errors.push('questions は5問である必要があります（現在 ' + qs.length + '）');
+    var product = 1;
+    qs.forEach(function (q) {
+      var codes = optionCodes(q);
+      if (codes.length < 2 || codes.length > 4) errors.push(q.id + ': 選択肢は2〜4つ');
+      if (new Set(codes).size !== codes.length) errors.push(q.id + ': 回答コードが重複しています');
+      if (!q.title || !q.axis) errors.push(q.id + ': 設問文または診断軸が空です');
+      q.options.forEach(function (o) { if (!o.code || !o.label) errors.push(q.id + ': 選択肢の code か label が空です'); });
+      product *= codes.length;
+    });
+    if (towns.length !== 12) errors.push('towns は12市町村である必要があります（現在 ' + towns.length + '）');
+    if (towns.length && product % towns.length !== 0) errors.push('回答の組み合わせ数 ' + product + ' が市町村数 ' + towns.length + ' で割り切れません（均等にならない）');
+    if (!Array.isArray(rule.weights) || rule.weights.length !== qs.length) errors.push('rule.weights は設問数（' + qs.length + '）と同じ長さが必要です');
+    else rule.weights.forEach(function (w, i) { if (typeof w !== 'number') errors.push('rule.weights[' + i + '] が数値ではありません'); });
+    if (typeof rule.runners !== 'number' || rule.runners < 1 || rule.runners > towns.length - 1) errors.push('rule.runners は 1〜' + (towns.length - 1) + ' の数値');
+    var keys = new Set();
+    towns.forEach(function (t) {
+      if (!t.key || keys.has(t.key)) errors.push((t.name || '?') + ': key が空か重複しています');
+      keys.add(t.key);
+      if (!t.name) errors.push(t.key + ': 市町村名が空です');
+      ['consultUrl', 'officialUrl'].forEach(function (k) {
+        if (!/^https:\/\//.test(t[k] || '')) errors.push(t.name + ': ' + k + ' は https:// で始まる必要があります');
+      });
+      if (!t.lead || !t.summary) errors.push(t.name + ': 結果見出しまたは紹介文が空です');
+    });
+    if (!errors.length) {
+      var d = distribution(cfg);
+      d.problems.forEach(function (p) { errors.push('公平性: ' + p); });
+    }
+    return errors;
+  }
+
+  // 文言のルール検査（「相双12市町村」表記／「里山」統一）。戻り値＝警告文の配列
+  function lintCopy(cfg) {
+    var warnings = [];
+    collectStrings(cfg, '', function (path, text) {
+      if (/^(lp|cta)\.(url|lineUrl)$|Url$/.test(path)) return;
+      indexesOf(text, '12市町村').forEach(function (i) {
+        if (text.slice(Math.max(0, i - 2), i) !== '相双') warnings.push(path + ': 「12市町村」は「相双12市町村」と書く → 「' + text + '」');
+      });
+      indexesOf(text, '山').forEach(function (i) {
+        if (text.charAt(i - 1) !== '里') warnings.push(path + ': 「山」単独の表現。「里山」で統一する → 「' + text + '」');
+      });
+    });
+    return warnings;
+  }
+
+  function indexesOf(text, needle) {
+    var out = [], i = text.indexOf(needle);
+    while (i >= 0) { out.push(i); i = text.indexOf(needle, i + 1); }
+    return out;
+  }
+
+  function collectStrings(value, path, visit) {
+    if (typeof value === 'string') { visit(path, value); return; }
+    if (Array.isArray(value)) { value.forEach(function (v, i) { collectStrings(v, path + '[' + i + ']', visit); }); return; }
+    if (value && typeof value === 'object') {
+      Object.keys(value).forEach(function (k) { collectStrings(value[k], path ? path + '.' + k : k, visit); });
+    }
+  }
+
+  return { calculate: calculate, slotOf: slotOf, patternId: patternId, toIndexes: toIndexes, allIndexes: allIndexes, distribution: distribution, validateConfig: validateConfig, lintCopy: lintCopy, collectStrings: collectStrings };
+})();
+</script>
+
+<!-- =====================================================================
+  画面制御・埋め込み・計測
+===================================================================== -->
+<script id="sousou-app">
+(function () {
+  'use strict';
+  var cfg = CONFIG;
+  var core = SousouCore;
+  var copy = cfg.copy;
+  var doc = document;
+  var $ = function (id) { return doc.getElementById(id); };
+  var isEmbed = doc.documentElement.classList.contains('is-embed');
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var params = new URLSearchParams(window.location.search);
+  var session = Math.random().toString(36).slice(2, 10);
+  var total = cfg.questions.length;
+
+  var state = { screen: 'start', current: 0, answers: new Array(total).fill(null), result: null, busy: false };
+
+  var el = {
+    page: $('page'), card: $('card'), live: $('live'),
+    progress: $('progress'), progressLabel: $('progress-label'), progressAxis: $('progress-axis'),
+    progressCount: $('progress-count'), progressTrack: $('progress-track'), progressBar: $('progress-bar'),
+    start: $('screen-start'), question: $('screen-question'), tally: $('screen-tally'), result: $('screen-result'),
+    qLabel: $('q-label'), qTitle: $('q-title'), options: $('options'), back: $('back-button'), next: $('next-button'),
+  };
+
+  // ---- 文字の流し込み（すべて textContent。改行は \n のみ） ----
+  function setText(id, text) { var node = $(id); if (node) node.textContent = text == null ? '' : String(text); }
+  function setLines(node, text) {
+    node.textContent = '';
+    String(text).split('\n').forEach(function (line, i) {
+      if (i) node.appendChild(doc.createElement('br'));
+      node.appendChild(doc.createTextNode(line));
+    });
+  }
+  function make(tag, className, text) {
+    var n = doc.createElement(tag);
+    if (className) n.className = className;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function srNote(text) { var s = make('span', 'sr-only', text); return s; }
+
+  // ---- 静的文言 ----
+  function renderStatic() {
+    doc.title = cfg.app.name;
+    setText('hero-eyebrow', copy.heroEyebrow);
+    setText('hero-lead', copy.heroLead);
+    setText('hero-text', copy.heroText);
+    var chips = $('hero-chips'); chips.textContent = '';
+    copy.chips.forEach(function (c) { chips.appendChild(make('li', null, c)); });
+    setText('start-title', copy.startTitle);
+    setText('start-intro', copy.startIntro);
+    var notes = $('start-notes'); notes.textContent = '';
+    copy.startNotes.forEach(function (n) {
+      var li = make('li'); li.appendChild(make('strong', null, n.title)); li.appendChild(make('span', null, n.text)); notes.appendChild(li);
+    });
+    setText('start-button', copy.startButton);
+    setText('start-footnote', copy.startFootnote);
+    setText('back-button', copy.backButton);
+    setText('tally-text', copy.tally);
+    setText('result-kicker', copy.resultKicker);
+    setText('reasons-title', copy.reasonsTitle);
+    setText('runners-title', copy.runnersTitle);
+    setText('runners-note', copy.runnersNote);
+    setText('restart-button', copy.restartButton);
+    setLines($('disclaimer'), copy.disclaimer);
+    setText('footer-text', '©' + cfg.app.copyrightYear + ' ' + cfg.app.operator);
+    var lpLink = $('lp-link');
+    if (cfg.lp.url) { lpLink.href = cfg.lp.url + (cfg.lp.diagnosisAnchor || ''); lpLink.textContent = cfg.lp.label; lpLink.hidden = false; }
+    $('wordmark').href = cfg.lp.url || '#app';
+    externalButton($('consult-link'), copy.consultButton);
+    externalButton($('official-link'), copy.officialButton);
+    el.progressTrack.setAttribute('aria-valuemax', String(total));
+  }
+  function externalButton(a, label) {
+    a.textContent = '';
+    a.appendChild(doc.createTextNode(label + ' '));
+    a.appendChild(make('span', 'arrow', '↗'));
+    a.appendChild(srNote(copy.newTab));
+  }
+
+  // ---- 画面切替 ----
+  function showScreen(name) {
+    [['start', el.start], ['question', el.question], ['tally', el.tally], ['result', el.result]].forEach(function (pair) {
+      var on = pair[0] === name;
+      pair[1].hidden = !on;
+      pair[1].classList.toggle('is-entering', on && !reduceMotion);
+    });
+    el.progress.hidden = (name === 'start');
+    state.screen = name;
+  }
+
+  function announce(text) { el.live.textContent = ''; setTimeout(function () { el.live.textContent = text; }, 30); }
+
+  function focusTo(node) {
+    if (!node) return;
+    try { node.focus({ preventScroll: true }); } catch (e) { node.focus(); }
+  }
+
+  // 画面が切り替わったら、カードの上端が見えるようにする（埋め込み時は親に頼む）
+  function revealTop() {
+    if (isEmbed) { post({ type: 'scroll' }); return; }
+    var top = el.card.getBoundingClientRect().top;
+    if (top < 0) window.scrollTo({ top: window.pageYOffset + top - 12, behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+
+  function afterRender() {
+    requestAnimationFrame(function () { requestAnimationFrame(function () { sendHeight(); }); });
+  }
+
+  // ---- 進捗 ----
+  function setProgress(step, done) {
+    var q = cfg.questions[Math.min(step, total - 1)];
+    var shown = done ? total : step + 1;
+    setText('progress-label', done ? '診断完了' : q.id);
+    setText('progress-axis', done ? '' : q.axis);
+    setText('progress-count', done ? '' : shown + ' / ' + total);
+    el.progressBar.style.width = ((done ? total : step) / total * 100) + '%';
+    el.progressTrack.setAttribute('aria-valuenow', String(done ? total : step));
+    el.progressTrack.setAttribute('aria-valuetext', done ? '診断完了' : '質問 ' + shown + '／' + total);
+  }
+
+  // ---- 設問 ----
+  function renderQuestion() {
+    var q = cfg.questions[state.current];
+    var chosen = state.answers[state.current];
+    setText('q-label', q.id + '　' + q.axis);
+    setText('q-title-text', q.title);
+    el.options.textContent = '';
+    q.options.forEach(function (opt, i) {
+      var label = make('label', 'option' + (chosen === opt.code ? ' is-selected' : ''));
+      var input = doc.createElement('input');
+      input.type = 'radio'; input.name = 'answer'; input.value = opt.code; input.className = 'sr-only';
+      input.id = 'opt-' + q.id + '-' + opt.code;
+      input.checked = chosen === opt.code;
+      input.addEventListener('change', function () { onSelect(opt.code); });
+      var letter = make('span', 'option-letter', String.fromCharCode(65 + i));
+      letter.setAttribute('aria-hidden', 'true');
+      var text = make('span', 'option-text');
+      text.appendChild(make('strong', null, opt.label));
+      text.appendChild(make('small', null, opt.note));
+      label.appendChild(input); label.appendChild(letter); label.appendChild(text);
+      el.options.appendChild(label);
+    });
+    el.back.style.visibility = state.current === 0 ? 'hidden' : 'visible';
+    el.back.disabled = state.current === 0;
+    el.next.disabled = chosen == null;
+    el.next.textContent = '';
+    el.next.appendChild(doc.createTextNode(state.current === total - 1 ? copy.resultButton : copy.nextButton));
+    el.next.appendChild(make('span', 'arrow', '→'));
+    setProgress(state.current, false);
+  }
+
+  function onSelect(code) {
+    state.answers[state.current] = code;
+    Array.prototype.forEach.call(el.options.children, function (label) {
+      var input = label.querySelector('input');
+      label.classList.toggle('is-selected', input.value === code);
+    });
+    el.next.disabled = false;
+    afterRender();
+  }
+
+  function goQuestion(index, reason) {
+    state.current = index;
+    renderQuestion();
+    showScreen('question');
+    announce('質問 ' + (index + 1) + '／' + total + '。' + cfg.questions[index].title);
+    focusTo(el.qTitle);
+    revealTop();
+    afterRender();
+  }
+
+  function start() {
+    if (state.busy) return;
+    track('diagnosis_start', {});
+    goQuestion(0, 'start');
+  }
+
+  function next() {
+    if (state.busy) return;
+    var code = state.answers[state.current];
+    if (code == null) { el.next.disabled = true; return; }
+    track('diagnosis_answer', { q: state.current + 1, question_id: cfg.questions[state.current].id, code: code });
+    if (state.current < total - 1) { goQuestion(state.current + 1, 'next'); return; }
+    finish();
+  }
+
+  function back() {
+    if (state.busy || state.current === 0) return;
+    goQuestion(state.current - 1, 'back');
+  }
+
+  function finish() {
+    state.busy = true;
+    showScreen('tally');
+    announce(copy.tally);
+    revealTop();
+    afterRender();
+    var delay = reduceMotion ? 0 : 650;
+    setTimeout(function () {
+      state.result = core.calculate(state.answers, cfg);
+      renderResult(state.result);
+      showScreen('result');
+      setProgress(total, true);
+      state.busy = false;
+      announce('診断結果：' + state.result.best.name + '。あわせてチェックしたいまちは ' + state.result.runners.map(function (r) { return r.name; }).join('と') + '。');
+      focusTo($('result-name'));
+      revealTop();
+      afterRender();
+      track('diagnosis_complete', {
+        result: state.result.best.key, result_name: state.result.best.name,
+        runners: state.result.runners.map(function (r) { return r.key; }).join(','),
+        pattern_id: state.result.patternId,
+        answers: state.answers.join('|'),
+      });
+    }, delay);
+  }
+
+  function restart() {
+    if (state.busy) return;
+    state.answers = new Array(total).fill(null);
+    state.result = null;
+    track('diagnosis_restart', {});
+    goQuestion(0, 'restart');
+  }
+
+  // ---- 結果 ----
+  function renderResult(r) {
+    var t = r.best.town;
+    setText('result-name', t.name);
+    setText('result-lead', t.lead);
+    setText('result-summary', t.summary);
+    var list = $('reason-list'); list.textContent = '';
+    r.reasons.forEach(function (item) {
+      var row = make('div', 'reason-item');
+      var dt = make('dt', null, item.axis); dt.setAttribute('data-q', item.id);
+      row.appendChild(dt);
+      row.appendChild(make('dd', null, item.label));
+      list.appendChild(row);
+    });
+    $('reasons').hidden = r.reasons.length === 0;
+    var consult = $('consult-link'); consult.href = t.consultUrl; consult.dataset.town = t.key;
+    var official = $('official-link'); official.href = t.officialUrl; official.dataset.town = t.key;
+
+    var runners = $('runner-list'); runners.textContent = '';
+    r.runners.forEach(function (run) {
+      var li = make('li', 'runner');
+      var head = make('div', 'runner-head');
+      head.appendChild(make('span', 'runner-name', run.town.name));
+      var a = make('a', 'runner-link');
+      a.href = run.town.consultUrl; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.dataset.kind = 'runner_consult'; a.dataset.town = run.town.key;
+      a.appendChild(doc.createTextNode(copy.runnerLink + ' ↗'));
+      a.appendChild(srNote(copy.newTab));
+      head.appendChild(a);
+      li.appendChild(head);
+      li.appendChild(make('p', 'runner-lead', run.town.lead));
+      runners.appendChild(li);
+    });
+
+    renderSeminar();
+  }
+
+  function renderSeminar() {
+    var box = $('seminar'), link = $('seminar-link');
+    var mode = cfg.cta.seminar;
+    var href = '';
+    if (mode === 'lp' && cfg.lp.url) href = cfg.lp.url + (cfg.lp.seminarAnchor || '');
+    if (mode === 'line' && cfg.cta.lineUrl) href = cfg.cta.lineUrl;
+    if (!href) { box.hidden = true; return; }
+    box.hidden = false;
+    setText('seminar-badge', cfg.cta.eyebrow);
+    setText('seminar-label', cfg.cta.label);
+    setText('seminar-note', cfg.cta.note);
+    link.href = href;
+    link.textContent = '';
+    link.classList.toggle('line', mode === 'line');
+    link.dataset.kind = mode === 'line' ? 'line' : 'seminar';
+    if (mode === 'line') {
+      link.target = '_blank'; link.rel = 'noopener noreferrer';
+      link.appendChild(doc.createTextNode(cfg.cta.buttonLine + ' ↗')); link.appendChild(srNote(copy.newTab));
+    } else {
+      link.target = isEmbed ? '_parent' : '_self'; link.removeAttribute('rel');
+      link.appendChild(doc.createTextNode(cfg.cta.buttonLp + ' →'));
+    }
+  }
+
+  // ---- 計測 ----
+  function track(event, data) {
+    if (!cfg.analytics.enabled) return;
+    var payload = { event: event, app: 'sousou_diagnosis', app_version: cfg.version, mode: isEmbed ? 'embed' : 'standalone', diag_session: session };
+    Object.keys(data || {}).forEach(function (k) { payload[k] = data[k]; });
+    if (cfg.analytics.pushToLocalDataLayer && Array.isArray(window.dataLayer)) { try { window.dataLayer.push(payload); } catch (e) {} }
+    if (typeof window.clarity === 'function') {
+      try { window.clarity('event', event); if (data && data.result) window.clarity('set', 'diagnosis_result', String(data.result)); } catch (e) {}
+    }
+    if (isEmbed && cfg.analytics.relayToParent) post({ type: 'event', event: event, params: payload });
+  }
+
+  function loadClarity(id) {
+    if (!id) return;
+    window.clarity = window.clarity || function () { (window.clarity.q = window.clarity.q || []).push(arguments); };
+    var s = doc.createElement('script'); s.async = true; s.src = 'https://www.clarity.ms/tag/' + encodeURIComponent(id);
+    doc.head.appendChild(s);
+  }
+
+  // ---- 埋め込み（親ページとの通信） ----
+  function post(msg) {
+    if (!isEmbed) return;
+    var targets = [window.parent];
+    if (window.top && window.top !== window.parent) targets.push(window.top);
+    var origins = cfg.embed.parentOrigins && cfg.embed.parentOrigins.length ? cfg.embed.parentOrigins : ['*'];
+    var body = { source: 'sousou-diagnosis', v: 1 };
+    Object.keys(msg).forEach(function (k) { body[k] = msg[k]; });
+    targets.forEach(function (t) { origins.forEach(function (o) { try { t.postMessage(body, o); } catch (e) {} }); });
+  }
+  var lastHeight = 0;
+  function measure() { return Math.ceil(el.page.getBoundingClientRect().height) + 1; }
+  function sendHeight(force) {
+    if (!isEmbed || cfg.embed.fixedHeightFallback > 0) return;
+    var h = measure();
+    if (!force && Math.abs(h - lastHeight) < 2) return;
+    lastHeight = h;
+    post({ type: 'height', height: h });
+  }
+  function setupEmbed() {
+    if (!isEmbed) return;
+    if (cfg.embed.fixedHeightFallback > 0) { doc.documentElement.style.height = 'auto'; return; }
+    if ('ResizeObserver' in window) { new ResizeObserver(function () { sendHeight(); }).observe(el.page); }
+    else { window.addEventListener('resize', function () { sendHeight(); }); }
+    window.addEventListener('load', function () { post({ type: 'ready', height: measure() }); lastHeight = measure(); });
+    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { sendHeight(true); });
+  }
+
+  // ---- セルフテスト（?selftest=1 または SOUSOU_DIAGNOSIS.selfTest()） ----
+  function selfTest() {
+    var results = [];
+    function check(name, ok, detail) { results.push({ name: name, ok: !!ok, detail: detail || '' }); }
+    var names = function (r) { return r.runners.map(function (x) { return x.name; }).join('・'); };
+    var sizes = cfg.questions.map(function (q) { return q.options.length; });
+    var product = sizes.reduce(function (a, b) { return a * b; }, 1);
+    check('設定の形（5問・' + sizes.join('/') + '択・12市町村・' + product + '通り）', cfg.questions.length === 5 && cfg.towns.length === 12 && product === 768);
+    // シート「テストケース」から抜粋（同数の候補の並びを含む）
+    [
+      ['urban|city|family|local_work|private', 1, '新地町', '南相馬市・相馬市'],
+      ['urban|city|family|local_work|moderate', 2, '浪江町', '大熊町・葛尾村'],
+      ['urban|city|family|remote|moderate', 8, '楢葉町', '相馬市・広野町'],
+      ['balanced|city|community|local_work|private', 217, '南相馬市', '浪江町・葛尾村'],
+      ['renewal|suburban|calm|entrepreneur|active', 768, '飯舘村', '広野町・新地町'],
+    ].forEach(function (c) {
+      var r = core.calculate(c[0].split('|'), cfg);
+      check('TC-' + String(c[1]).padStart(3, '0') + ' ' + c[0], r.patternId === c[1] && r.best.name === c[2] && names(r) === c[3], r.best.name + '／候補 ' + names(r));
+    });
+    var d = core.distribution(cfg);
+    check('全' + d.total + '通り：主結果 各' + d.expectedPrimary + '回・候補 各' + d.expectedRunner + '回・重複なし', d.problems.length === 0, d.problems.slice(0, 3).join(' / '));
+    var errors = core.validateConfig(cfg);
+    check('validateConfig', errors.length === 0, errors.join(' / '));
+    var warnings = core.lintCopy(cfg);
+    check('lintCopy（相双12市町村・里山）', warnings.length === 0, warnings.join(' / '));
+    var box = $('selftest-panel') || make('div', 'selftest');
+    box.id = 'selftest-panel'; box.setAttribute('role', 'status'); box.textContent = '';
+    var passed = results.filter(function (r) { return r.ok; }).length;
+    box.appendChild(make('h2', null, 'セルフテスト ' + passed + '/' + results.length + (passed === results.length ? ' すべてPASS' : ' 失敗あり')));
+    var ul = make('ul');
+    results.forEach(function (r) { ul.appendChild(make('li', r.ok ? 'ok' : 'ng', r.name + (r.detail ? '：' + r.detail : ''))); });
+    box.appendChild(ul);
+    doc.body.appendChild(box);
+    if (window.console) console.table(results);
+    return results;
+  }
+
+  // ---- 初期化 ----
+  function init() {
+    renderStatic();
+    setupEmbed();
+    loadClarity(cfg.analytics.clarityProjectId);
+    var errors = core.validateConfig(cfg), warnings = core.lintCopy(cfg);
+    if (errors.length && window.console) console.error('[SOUSOU移住診断] CONFIG エラー', errors);
+    if (warnings.length && window.console) console.warn('[SOUSOU移住診断] 表記の警告', warnings);
+
+    $('start-button').addEventListener('click', start);
+    el.question.addEventListener('submit', function (e) { e.preventDefault(); next(); });
+    el.back.addEventListener('click', back);
+    $('restart-button').addEventListener('click', restart);
+    el.result.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[data-kind]') : null;
+      if (a) track('diagnosis_link_click', { kind: a.dataset.kind, town: a.dataset.town || (state.result ? state.result.best.key : '') });
+    });
+
+    showScreen('start');
+    afterRender();
+    if (!isEmbed && /^(1|true|yes)$/i.test(params.get('selftest') || '')) selfTest();
+  }
+
+  window.SOUSOU_DIAGNOSIS = { selfTest: selfTest, calculate: function (a) { return core.calculate(a, cfg); }, distribution: function () { return core.distribution(cfg); }, config: cfg, version: cfg.version };
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+</body>
+</html>
